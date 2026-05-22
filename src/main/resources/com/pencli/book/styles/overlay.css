@@ -1,0 +1,55 @@
+.overlay-root {
+    -fx-background-color: transparent;
+}
+
+.input-surface {
+    -fx-background-color: rgba(0, 0, 0, 0.01);
+}
+
+.overlay-toolbar {
+    -fx-background-color: rgba(13, 20, 33, 0.82);
+    -fx-background-radius: 8;
+    -fx-border-color: rgba(255, 255, 255, 0.12);
+    -fx-border-radius: 8;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.45), 18, 0.2, 0, 4);
+}
+
+.toolbar-button {
+    -fx-min-width: 38;
+    -fx-min-height: 38;
+    -fx-pref-width: 38;
+    -fx-pref-height: 38;
+    -fx-background-radius: 7;
+    -fx-background-color: rgba(255, 255, 255, 0.08);
+    -fx-border-color: rgba(255, 255, 255, 0.15);
+    -fx-border-radius: 7;
+    -fx-text-fill: white;
+    -fx-font-size: 14;
+    -fx-font-weight: 700;
+}
+
+.toolbar-button:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.16);
+}
+
+.toolbar-button.selected {
+    -fx-background-color: rgba(28, 109, 255, 0.72);
+    -fx-border-color: rgba(91, 160, 255, 0.95);
+}
+
+.toolbar-button:disabled {
+    -fx-opacity: 0.42;
+}
+
+.toolbar-color-picker {
+    -fx-min-width: 38;
+    -fx-pref-width: 38;
+}
+
+.toolbar-size-slider .track {
+    -fx-background-color: rgba(255, 255, 255, 0.20);
+}
+
+.toolbar-size-slider .thumb {
+    -fx-background-color: white;
+}
