@@ -1,6 +1,9 @@
 target/
+bin/
+obj/
 .idea/
 *.iml
 .vscode/
 *.log
 hs_err_pid*
+artifacts/

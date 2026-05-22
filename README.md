@@ -1,42 +1,103 @@
-# PenCliBook
+# PenInk 屏幕批注
 
-Windows screen annotation overlay built with Java 21, JavaFX, JNA, and JNativeHook.
+PenInk 是一个精简的 Windows 屏幕手写批注工具，当前版本使用 C# WPF `InkCanvas` 获取原生 Windows Ink 手写体验。
 
-## Requirements
+## 项目结构
 
-- Windows 10/11
-- JDK 21
-- Maven 3.9+
-
-## Run
-
-```powershell
-mvn javafx:run
+```text
+PenInk.slnx
+PenInk.Core/                 # 跨平台核心层
+  Input/                     # 输入点、短触点画补偿算法
+PenInk/                      # Windows WPF 应用
+  MainWindow.xaml            # 透明 overlay 和右侧工具栏
+  MainWindow.xaml.cs         # UI 编排、模式切换、笔刷配置
+  Inking/                    # WPF InkCanvas 笔迹历史
+  Infrastructure/Windows/    # Win32 热键、置顶、鼠标穿透
+PenInk.Mac/                  # macOS Avalonia 应用
+  OverlayCanvas.cs           # 自绘笔迹和工具栏
+  MacHotkeyService.cs        # Command + Option 全局热键
+scripts/                     # Windows exe 和 macOS app 打包脚本
 ```
 
-## Test
+拆包原则：
+
+- `PenInk.Core` 不依赖 WPF、Win32，可以被未来 Mac 版复用。
+- `PenInk` 只放 Windows 专属实现，包括 WPF、InkCanvas、Win32。
+- `PenInk.Mac` 只放 macOS 桌面实现，包括 Avalonia overlay 和 macOS 全局热键。
+- UI 层只做编排，底层能力按职责放到 `Inking` 和 `Infrastructure/Windows`。
+
+## 运行
 
 ```powershell
-mvn test
+dotnet run --project .\PenInk\PenInk.csproj
 ```
 
-## MVP Shortcuts
+## 构建
 
-| Shortcut         | Action                           |
-| ---------------- | -------------------------------- |
-| `Ctrl + Alt + P` | Enter pen mode                   |
-| `Ctrl + Alt + M` | Enter mouse passthrough mode     |
-| `Ctrl + Alt + C` | Clear all strokes                |
-| `Ctrl + Z`       | Undo last stroke or erase action |
-| `Esc`            | Hide overlay                     |
+```powershell
+dotnet build .\PenInk.slnx --configuration Release
+```
 
-## Architecture
+## 打包
 
-The implementation follows a lightweight DDD/ports-and-adapters structure:
+Windows 单文件 exe：
 
-- `domain`: pure Java stroke model, document aggregate, undo history, erase algorithm.
-- `application`: session use cases and mode transitions.
-- `adapter`: JavaFX input/rendering and JNativeHook global hotkeys.
-- `infrastructure`: Windows/JNA overlay style and mouse passthrough control.
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\package-windows.ps1
+```
 
-Pressure sensitivity and full multi-monitor DPI handling are intentionally left for a later version.
+输出：
+
+```text
+artifacts/windows/win-x64/PenInk.exe
+```
+
+macOS Apple Silicon：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\package-macos.ps1 -Runtime osx-arm64
+```
+
+macOS Intel：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\package-macos.ps1 -Runtime osx-x64
+```
+
+输出：
+
+```text
+artifacts/macos/osx-arm64/PenInk.app
+artifacts/macos/osx-arm64/PenInk-osx-arm64.zip
+artifacts/macos/osx-x64/PenInk.app
+artifacts/macos/osx-x64/PenInk-osx-x64.zip
+```
+
+## 快捷键
+
+| 快捷键 | 功能 |
+| --- | --- |
+| `Ctrl + Alt + P` | 画笔模式 |
+| `Ctrl + Alt + E` | 橡皮模式 |
+| `Ctrl + Alt + M` | 鼠标穿透 |
+| `Ctrl + Alt + Backspace` | 清屏 |
+| `Ctrl + Alt + H` | 隐藏 |
+| `Ctrl + Alt + Z` | 在画笔/橡皮模式下撤销 |
+| `Esc` | 当前激活时隐藏 |
+
+Windows 版基于 WPF + Windows Ink；Mac 版基于 Avalonia，使用 `Command + Option` 快捷键体系。
+
+## macOS 说明
+
+Mac 版使用 `Command + Option` 作为全局热键前缀：
+
+| 快捷键 | 功能 |
+| --- | --- |
+| `Command + Option + P` | 画笔模式 |
+| `Command + Option + E` | 橡皮模式 |
+| `Command + Option + M` | 鼠标穿透 |
+| `Command + Option + Delete` | 清屏 |
+| `Command + Option + H` | 隐藏 |
+| `Command + Option + Z` | 撤销 |
+
+当前 Mac 包是未签名开发包。首次运行时，macOS 可能要求在“隐私与安全性”里允许打开，并给 PenInk 授予“辅助功能/输入监控”权限，全局热键才会生效。
