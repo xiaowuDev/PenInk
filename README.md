@@ -4,9 +4,9 @@ PenInk 是一个精简的 Windows 屏幕手写批注工具，当前版本使用 
 
 ## 演示
 
-<video src="docs/music/penink-demo.mp4" controls muted playsinline width="100%"></video>
+![PenInk 演示](docs/music/penink-demo.gif)
 
-[无法播放时打开演示视频](docs/music/penink-demo.mp4)
+[打开高清 MP4 演示视频](docs/music/penink-demo.mp4)
 
 ## 项目结构
 
