@@ -1,34 +1,26 @@
-using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.Rendering;
 using PenInk.Core.Input;
 
 namespace PenInk.Mac;
 
-internal sealed class OverlayCanvas : Control
+internal sealed class OverlayCanvas : Control, ICustomHitTest
 {
-    private static readonly Color[] Palette =
-    [
-        Color.Parse("#FF3030"),
-        Color.Parse("#FFE100"),
-        Color.Parse("#2684FF"),
-        Color.Parse("#25B46B"),
-        Color.Parse("#FFFFFF"),
-        Color.Parse("#111827")
-    ];
-
     private readonly List<InkStroke> strokes = [];
     private readonly Stack<Action> undoStack = [];
-    private readonly List<ToolbarItem> toolbarItems = [];
-    private readonly Typeface typeface = new("Arial");
 
     private ToolMode mode = ToolMode.Mouse;
     private List<InkSample>? currentStroke;
     private PointerTapGuard? activeTap;
-    private Color currentColor = Palette[0];
+    private Color currentColor = Color.Parse("#FF3030");
     private double currentWidth = 4;
+
+    public ToolMode Mode => mode;
+    public Color CurrentColor => currentColor;
+    public double CurrentWidth => currentWidth;
 
     public OverlayCanvas()
     {
@@ -49,17 +41,27 @@ internal sealed class OverlayCanvas : Control
         {
             DrawStroke(context, new InkStroke(currentStroke, currentColor, currentWidth));
         }
-
-        if (mode != ToolMode.Mouse)
-        {
-            DrawToolbar(context);
-        }
     }
 
     public void SetMode(ToolMode nextMode)
     {
         mode = nextMode;
         Cursor = nextMode == ToolMode.Eraser ? new Cursor(StandardCursorType.Hand) : new Cursor(StandardCursorType.Cross);
+#if DEBUG
+        Console.WriteLine($"Overlay mode: {mode}");
+#endif
+        InvalidateVisual();
+    }
+
+    public void SetColor(Color color)
+    {
+        currentColor = color;
+        InvalidateVisual();
+    }
+
+    public void SetWidth(double width)
+    {
+        currentWidth = Math.Clamp(width, 1.5, 24);
         InvalidateVisual();
     }
 
@@ -92,12 +94,9 @@ internal sealed class OverlayCanvas : Control
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         var point = e.GetPosition(this);
-        if (HandleToolbar(point))
-        {
-            e.Handled = true;
-            return;
-        }
-
+#if DEBUG
+        Console.WriteLine($"Overlay press: {mode} {point}");
+#endif
         if (mode == ToolMode.Pen)
         {
             BeginStroke(e);
@@ -236,129 +235,7 @@ internal sealed class OverlayCanvas : Control
         context.DrawGeometry(null, pen, geometry);
     }
 
-    private bool HandleToolbar(Point point)
-    {
-        if (mode == ToolMode.Mouse)
-        {
-            return false;
-        }
-
-        foreach (var item in toolbarItems)
-        {
-            if (!item.Bounds.Contains(point))
-            {
-                continue;
-            }
-
-            item.Action(point);
-            InvalidateVisual();
-            return true;
-        }
-
-        return false;
-    }
-
-    private void DrawToolbar(DrawingContext context)
-    {
-        toolbarItems.Clear();
-
-        const double panelWidth = 58;
-        const double button = 42;
-        var x = Bounds.Width - panelWidth - 24;
-        var y = (Bounds.Height - 462) / 2;
-        var panel = new Rect(x, y, panelWidth, 462);
-        context.DrawRectangle(new SolidColorBrush(Color.Parse("#EF141C28")), new Pen(Color.Parse("#384F68").ToBrush(), 1), panel, 14);
-
-        y += 14;
-        DrawButton(context, new Rect(x + 8, y, button, button), "P", mode == ToolMode.Pen, () => SetMode(ToolMode.Pen));
-        y += 48;
-        DrawButton(context, new Rect(x + 8, y, button, button), "E", mode == ToolMode.Eraser, () => SetMode(ToolMode.Eraser));
-        y += 48;
-        DrawButton(context, new Rect(x + 8, y, button, button), "Z", false, Undo);
-        y += 48;
-        DrawButton(context, new Rect(x + 8, y, button, button), "C", false, Clear);
-        y += 55;
-
-        context.DrawEllipse(new SolidColorBrush(currentColor), new Pen(Brushes.White, 2), new Point(x + 29, y + 14), 13, 13);
-        y += 35;
-
-        for (var i = 0; i < Palette.Length; i++)
-        {
-            var col = i % 2;
-            var row = i / 2;
-            var center = new Point(x + 19 + col * 21, y + 10 + row * 21);
-            var color = Palette[i];
-            context.DrawEllipse(new SolidColorBrush(color), new Pen(color == currentColor ? Brushes.White : Brushes.Transparent, 2), center, 8, 8);
-            toolbarItems.Add(new ToolbarItem(new Rect(center.X - 10, center.Y - 10, 20, 20), _ => currentColor = color));
-        }
-
-        y += 73;
-        DrawSlider(context, new Rect(x + 19, y, 20, 96));
-        y += 108;
-        DrawButton(context, new Rect(x + 8, y, button, button), "M", false, () => SetMode(ToolMode.Mouse));
-        y += 48;
-        DrawButton(context, new Rect(x + 8, y, button, button), "H", false, () =>
-        {
-            if (TopLevel.GetTopLevel(this) is Window window)
-            {
-                window.Hide();
-            }
-        });
-    }
-
-    private void DrawButton(DrawingContext context, Rect rect, string label, bool active, Action action)
-    {
-        var background = active ? Color.Parse("#2563EB") : Color.Parse("#101B2633");
-        var border = active ? Color.Parse("#8BC5FF") : Color.Parse("#24425973");
-        context.DrawRectangle(new SolidColorBrush(background), new Pen(new SolidColorBrush(border), 1), rect, 9);
-
-        var text = new FormattedText(
-            label,
-            CultureInfo.InvariantCulture,
-            FlowDirection.LeftToRight,
-            typeface,
-            16,
-            Brushes.White);
-        context.DrawText(text, new Point(rect.Center.X - text.Width / 2, rect.Center.Y - text.Height / 2));
-        toolbarItems.Add(new ToolbarItem(rect, _ => action()));
-    }
-
-    private void DrawSlider(DrawingContext context, Rect rect)
-    {
-        var track = new Rect(rect.Center.X - 2, rect.Y, 4, rect.Height);
-        context.DrawRectangle(new SolidColorBrush(Color.Parse("#314258")), null, track, 3);
-
-        var ratio = (currentWidth - 1.5) / (24 - 1.5);
-        var knobY = rect.Bottom - ratio * rect.Height;
-        var center = new Point(rect.Center.X, knobY);
-        context.DrawEllipse(Brushes.White, new Pen(Color.Parse("#2F80ED").ToBrush(), 2), center, 10, 10);
-        toolbarItems.Add(new ToolbarItem(new Rect(rect.X - 8, rect.Y, rect.Width + 16, rect.Height), point => SetWidthFromSlider(rect, point.Y)));
-    }
-
-    private void SetWidthFromSlider(Rect rect, double y)
-    {
-        var clampedY = Math.Clamp(y, rect.Y, rect.Bottom);
-        var ratio = (rect.Bottom - clampedY) / rect.Height;
-        currentWidth = 1.5 + ratio * (24 - 1.5);
-    }
-
-    protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
-    {
-        var toolbar = new Rect(Bounds.Width - 90, (Bounds.Height - 462) / 2, 70, 462);
-        if (toolbar.Contains(e.GetPosition(this)))
-        {
-            currentWidth = Math.Clamp(currentWidth + e.Delta.Y, 1.5, 24);
-            InvalidateVisual();
-            e.Handled = true;
-        }
-    }
-
     private static InkPoint ToInkPoint(Point point) => new(point.X, point.Y);
 
-    private sealed record ToolbarItem(Rect Bounds, Action<Point> Action);
-}
-
-internal static class ColorExtensions
-{
-    public static IBrush ToBrush(this Color color) => new SolidColorBrush(color);
+    public bool HitTest(Point point) => mode != ToolMode.Mouse;
 }

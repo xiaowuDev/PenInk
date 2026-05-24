@@ -2,6 +2,12 @@
 
 PenInk 是一个精简的 Windows 屏幕手写批注工具，当前版本使用 C# WPF `InkCanvas` 获取原生 Windows Ink 手写体验。
 
+## 演示
+
+<video src="docs/music/penink-demo.mp4" controls muted playsinline width="100%"></video>
+
+[无法播放时打开演示视频](docs/music/penink-demo.mp4)
+
 ## 项目结构
 
 ```text
@@ -58,10 +64,22 @@ macOS Apple Silicon：
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\package-macos.ps1 -Runtime osx-arm64
 ```
 
+macOS 本机 shell：
+
+```bash
+./scripts/package-macos.sh osx-arm64
+```
+
 macOS Intel：
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\package-macos.ps1 -Runtime osx-x64
+```
+
+macOS 本机 shell：
+
+```bash
+./scripts/package-macos.sh osx-x64
 ```
 
 输出：
@@ -69,8 +87,12 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\package-macos.
 ```text
 artifacts/macos/osx-arm64/PenInk.app
 artifacts/macos/osx-arm64/PenInk-osx-arm64.zip
+artifacts/macos/osx-arm64/PenInk-osx-arm64.dmg
+artifacts/macos/osx-arm64/PenInk-osx-arm64.pkg
 artifacts/macos/osx-x64/PenInk.app
 artifacts/macos/osx-x64/PenInk-osx-x64.zip
+artifacts/macos/osx-x64/PenInk-osx-x64.dmg
+artifacts/macos/osx-x64/PenInk-osx-x64.pkg
 ```
 
 ## 快捷键
@@ -88,6 +110,8 @@ artifacts/macos/osx-x64/PenInk-osx-x64.zip
 Windows 版基于 WPF + Windows Ink；Mac 版基于 Avalonia，使用 `Command + Option` 快捷键体系。
 
 ## macOS 说明
+
+Mac 版启动后会显示一个置顶悬浮工具栏，可以直接用按钮切换画笔、橡皮、鼠标穿透、撤销、清屏、颜色和粗细。拖动工具栏顶部的手柄可以移动位置；点 `H` 只隐藏画布，工具栏仍会保留，方便再次切回画笔。
 
 Mac 版使用 `Command + Option` 作为全局热键前缀：
 

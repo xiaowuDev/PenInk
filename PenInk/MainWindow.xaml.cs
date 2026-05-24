@@ -60,6 +60,7 @@ public partial class MainWindow : Window
         Top = SystemParameters.VirtualScreenTop;
         Width = SystemParameters.VirtualScreenWidth;
         Height = SystemParameters.VirtualScreenHeight;
+
     }
 
     private void ConfigureInk()
